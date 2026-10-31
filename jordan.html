@@ -78,12 +78,16 @@
     .candy-game { background: var(--white); border: 3px solid var(--red); border-radius: 12px; padding: 20px; }
     .candy-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
     .candy-stats { display: flex; flex-wrap: wrap; gap: 8px 20px; font-weight: bold; }
-    .candy-board { display: grid; grid-template-columns: repeat(var(--board-size), minmax(0, 1fr)); gap: 5px; width: min(100%, 430px); margin: 0 auto; aspect-ratio: 1; }
+    .candy-board { display: grid; grid-template-columns: repeat(var(--board-size), minmax(0, 1fr)); gap: 5px; width: min(100%, 430px); margin: 0 auto; aspect-ratio: 1; touch-action: none; }
     .candy-board button { position: relative; display: grid; place-items: center; min-width: 0; aspect-ratio: 1; padding: 0; border: 2px solid transparent; border-radius: 8px; font-size: clamp(1.2rem, 5vw, 2rem); line-height: 1; }
     .candy-board button:hover { filter: brightness(0.94); background: var(--candy-color); }
     .candy-board button.selected { border-color: var(--ink); animation: candy-selected 550ms ease-in-out infinite alternate; }
     .candy-board button.exploding { z-index: 2; animation: candy-pop 280ms ease-in forwards; pointer-events: none; }
     .candy-board button.exploding::after { content: "✦"; position: absolute; top: 50%; left: 50%; color: #ffcc33; font-size: 1.4em; line-height: 1; text-shadow: 0 0 8px #fff, 0 0 14px #ff8a00; pointer-events: none; animation: candy-burst 280ms ease-out forwards; }
+    .candy-board button.striped { box-shadow: inset 0 0 0 3px #fff, inset 0 0 0 6px #d62828; }
+    .candy-board button.striped::before { content: "✦"; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-size: 1.35em; text-shadow: 0 0 4px #9d1b1b, 0 0 8px #9d1b1b; }
+    .candy-board button.color-bomb { background: radial-gradient(circle at 35% 30%, #fff 0 7%, #ffcc33 8% 18%, #d62828 19% 34%, #7046a8 35% 51%, #2f85bc 52% 68%, #292139 69%); box-shadow: inset 0 0 0 3px #fff8, 0 0 12px #9b5de5aa; }
+    .candy-help { margin-top: 10px; text-align: center; font-size: .95rem; }
     .candy-red { --candy-color: #ffd3cf; background: var(--candy-color); }
     .candy-orange { --candy-color: #ffe0bd; background: var(--candy-color); }
     .candy-yellow { --candy-color: #fff0a8; background: var(--candy-color); }
@@ -249,11 +253,16 @@
           <div class="candy-stats">
             <span>Score: <span id="candyScore">0</span></span>
             <span>Moves: <span id="candyMoves">0</span></span>
+            <span>Power-ups: ✨ 4-match · 🌈 5-match</span>
           </div>
-          <button type="button" id="candyReset">New game</button>
+          <div class="candy-actions">
+            <button type="button" id="candyBombTest">Test color bomb</button>
+            <button type="button" id="candyReset">New game</button>
+          </div>
         </div>
         <div class="candy-board" id="candyBoard" aria-label="Candy match game board"></div>
         <p class="candy-message" id="candyMessage" aria-live="polite">Swap two neighboring candies to match three!</p>
+        <p class="candy-help">Swipe neighboring fruits to swap them, or tap two. Four in a row makes a line-clear ✨; five makes a color bomb 🌈.</p>
       </div>
     </div>
   </section>
@@ -463,46 +472,89 @@
     const candyMovesBox = document.getElementById("candyMoves");
     const candyMessage = document.getElementById("candyMessage");
     const candyResetButton = document.getElementById("candyReset");
+    const candyBombTestButton = document.getElementById("candyBombTest");
     let candies = [];
     let selectedCandy = null;
     let candyScore = 0;
     let candyMoves = 0;
     let candyBusy = false;
+    let candySwapTarget = null;
+    let candyBombTargetType = null;
+    let candySwipeStart = null;
+    let suppressCandyClickUntil = 0;
 
     function randomCandy() {
       return Math.floor(Math.random() * candyTypes.length);
     }
 
+    function makeCandy(type = randomCandy(), power = null) {
+      return { type, power };
+    }
+
     function makeCandyBoard() {
       candies = [];
       for (let index = 0; index < boardSize * boardSize; index++) {
-        let candy = randomCandy();
+        let candyType = randomCandy();
         while (
-          (index % boardSize > 1 && candies[index - 1] === candy && candies[index - 2] === candy) ||
-          (index >= boardSize * 2 && candies[index - boardSize] === candy && candies[index - boardSize * 2] === candy)
+          (index % boardSize > 1 && candies[index - 1].type === candyType && candies[index - 2].type === candyType) ||
+          (index >= boardSize * 2 && candies[index - boardSize].type === candyType && candies[index - boardSize * 2].type === candyType)
         ) {
-          candy = randomCandy();
+          candyType = randomCandy();
         }
-        candies.push(candy);
+        candies.push(makeCandy(candyType));
       }
       selectedCandy = null;
       candyScore = 0;
       candyMoves = 0;
+      candyBusy = false;
+      candySwapTarget = null;
+      candyBombTargetType = null;
+      candyResetButton.disabled = false;
+      candyBombTestButton.disabled = false;
       candyScoreBox.textContent = candyScore;
       candyMovesBox.textContent = candyMoves;
-      candyMessage.textContent = "Swap two neighboring candies to match three!";
+      candyMessage.textContent = "Swipe or tap two neighboring fruits to make a match!";
+      drawCandyBoard();
+    }
+
+    function setupCandyBombTest() {
+      candies = Array.from({ length: boardSize * boardSize }, (_, index) => {
+        const row = Math.floor(index / boardSize);
+        const column = index % boardSize;
+        return makeCandy((row + column) % candyTypes.length);
+      });
+      for (let column = 0; column < 4; column++) {
+        candies[column] = makeCandy(0);
+      }
+      candies[4] = makeCandy(2);
+      candies[boardSize + 4] = makeCandy(0);
+      selectedCandy = null;
+      candySwapTarget = null;
+      candyBombTargetType = null;
+      candyBusy = false;
+      candyResetButton.disabled = false;
+      candyBombTestButton.disabled = false;
+      candyScore = 0;
+      candyMoves = 0;
+      candyScoreBox.textContent = candyScore;
+      candyMovesBox.textContent = candyMoves;
+      candyMessage.textContent = "Swipe the strawberry at row 2, column 5 up to complete five in a row!";
       drawCandyBoard();
     }
 
     function drawCandyBoard() {
       candyBoard.replaceChildren();
       candies.forEach((candy, index) => {
-        const type = candyTypes[candy];
+        const type = candyTypes[candy.type];
         const tile = document.createElement("button");
         tile.type = "button";
-        tile.className = "candy-" + type.color + (index === selectedCandy ? " selected" : "");
+        tile.className = "candy-" + type.color +
+          (candy.power === "stripe" ? " striped" : "") +
+          (candy.power === "bomb" ? " color-bomb" : "") +
+          (index === selectedCandy ? " selected" : "");
         tile.dataset.index = index;
-        tile.setAttribute("aria-label", type.name + ", row " + (Math.floor(index / boardSize) + 1) + ", column " + (index % boardSize + 1));
+        const powerName = candy.power === "stripe" ? ", line-clear power-up" : candy.power === "bomb" ? ", color bomb power-up" : "";
+        tile.setAttribute("aria-label", type.name + powerName + ", row " + (Math.floor(index / boardSize) + 1) + ", column " + (index % boardSize + 1));
         tile.setAttribute("aria-pressed", index === selectedCandy);
         tile.textContent = type.icon;
         candyBoard.append(tile);
@@ -550,35 +602,90 @@
 
     function findCandyMatches() {
       const matches = new Set();
+      const powers = new Map();
+      function addRun(indices, power) {
+        if (indices.length < 3) return;
+        indices.forEach(index => matches.add(index));
+        if (indices.length >= 4) {
+          const targetIndex = candySwapTarget !== null && indices.includes(candySwapTarget)
+            ? candySwapTarget
+            : indices[Math.floor(indices.length / 2)];
+          powers.set(targetIndex, indices.length >= 5 ? "bomb" : power);
+        }
+      }
+
       for (let row = 0; row < boardSize; row++) {
-        for (let column = 0; column < boardSize; column++) {
+        let run = [];
+        for (let column = 0; column <= boardSize; column++) {
           const index = row * boardSize + column;
-          const candy = candies[index];
-          if (column < boardSize - 2 && candy === candies[index + 1] && candy === candies[index + 2]) {
-            let end = column + 2;
-            while (end + 1 < boardSize && candies[row * boardSize + end + 1] === candy) end++;
-            for (let matchColumn = column; matchColumn <= end; matchColumn++) matches.add(row * boardSize + matchColumn);
-          }
-          if (row < boardSize - 2 && candy === candies[index + boardSize] && candy === candies[index + boardSize * 2]) {
-            let end = row + 2;
-            while (end + 1 < boardSize && candies[(end + 1) * boardSize + column] === candy) end++;
-            for (let matchRow = row; matchRow <= end; matchRow++) matches.add(matchRow * boardSize + column);
+          if (column < boardSize && (run.length === 0 || candies[index].type === candies[run[0]].type)) {
+            run.push(index);
+          } else {
+            addRun(run, "stripe-row");
+            run = column < boardSize ? [index] : [];
           }
         }
       }
-      return matches;
+      for (let column = 0; column < boardSize; column++) {
+        let run = [];
+        for (let row = 0; row <= boardSize; row++) {
+          const index = row * boardSize + column;
+          if (row < boardSize && (run.length === 0 || candies[index].type === candies[run[0]].type)) {
+            run.push(index);
+          } else {
+            addRun(run, "stripe-column");
+            run = row < boardSize ? [index] : [];
+          }
+        }
+      }
+      return { matches, powers };
     }
 
-    function clearAndRefill(matches) {
+    function activateCandyPowers(matches) {
+      const queue = [...matches];
+      const activated = new Set();
+      for (let queueIndex = 0; queueIndex < queue.length; queueIndex++) {
+        const index = queue[queueIndex];
+        const candy = candies[index];
+        if (!candy.power || activated.has(index)) continue;
+        activated.add(index);
+        if (candy.power === "stripe-row") {
+          const row = Math.floor(index / boardSize);
+          for (let column = 0; column < boardSize; column++) matches.add(row * boardSize + column);
+        } else if (candy.power === "stripe-column") {
+          const column = index % boardSize;
+          for (let row = 0; row < boardSize; row++) matches.add(row * boardSize + column);
+        } else if (candy.power === "bomb") {
+          const targetType = candyBombTargetType ??
+            candies.find((_, otherIndex) => otherIndex !== index && matches.has(otherIndex))?.type;
+          if (targetType !== undefined) {
+            candies.forEach((otherCandy, otherIndex) => {
+              if (otherCandy.type === targetType) matches.add(otherIndex);
+            });
+          }
+        }
+        [...matches].forEach(matchedIndex => {
+          if (!queue.includes(matchedIndex)) queue.push(matchedIndex);
+        });
+      }
+      return activated;
+    }
+
+    function clearAndRefill(matches, powers = new Map(), activated = new Set()) {
+      const powerCandyIndices = new Set([...powers.keys()].filter(index => !activated.has(index)));
+      powerCandyIndices.forEach(index => matches.delete(index));
       candyScore += matches.size * 10;
       candyScoreBox.textContent = candyScore;
+      powers.forEach((power, index) => {
+        if (!activated.has(index)) candies[index] = makeCandy(candies[index].type, power);
+      });
       for (let column = 0; column < boardSize; column++) {
         const remaining = [];
         for (let row = boardSize - 1; row >= 0; row--) {
           const index = row * boardSize + column;
           if (!matches.has(index)) remaining.push(candies[index]);
         }
-        while (remaining.length < boardSize) remaining.push(randomCandy());
+        while (remaining.length < boardSize) remaining.push(makeCandy());
         for (let row = boardSize - 1; row >= 0; row--) {
           candies[row * boardSize + column] = remaining[boardSize - 1 - row];
         }
@@ -586,20 +693,70 @@
     }
 
     async function resolveCandyMatches() {
-      let matches = findCandyMatches();
+      let { matches, powers } = findCandyMatches();
       while (matches.size > 0) {
+        const activated = activateCandyPowers(matches);
         await animateCandyMatches(matches);
-        clearAndRefill(matches);
-        matches = findCandyMatches();
+        clearAndRefill(matches, powers, activated);
+        candySwapTarget = null;
+        candyBombTargetType = null;
+        ({ matches, powers } = findCandyMatches());
         drawCandyBoard();
       }
       candyBusy = false;
       candyResetButton.disabled = false;
+      candyBombTestButton.disabled = false;
     }
 
-    candyBoard.addEventListener("click", async function (event) {
+    async function attemptCandySwap(firstIndex, index) {
+      if (candyBusy || firstIndex === index) return;
+      const rowDistance = Math.abs(Math.floor(firstIndex / boardSize) - Math.floor(index / boardSize));
+      const columnDistance = Math.abs((firstIndex % boardSize) - (index % boardSize));
+      if (rowDistance + columnDistance !== 1) return;
+
+      const firstCandy = candies[firstIndex];
+      candies[firstIndex] = candies[index];
+      candies[index] = firstCandy;
+      selectedCandy = null;
+      candySwapTarget = index;
+      candyBombTargetType = candies[firstIndex].power === "bomb" && candies[index].power !== "bomb"
+        ? candies[index].type
+        : candies[index].power === "bomb" && candies[firstIndex].power !== "bomb"
+          ? candies[firstIndex].type
+          : null;
+      const { matches } = findCandyMatches();
+      const usedPower = candies[firstIndex].power || candies[index].power;
+      if (usedPower) {
+        matches.add(firstIndex);
+        matches.add(index);
+      }
+      candyBusy = true;
+      candyResetButton.disabled = true;
+      candyBombTestButton.disabled = true;
+      await animateCandySwap(firstIndex, index, matches.size > 0);
+      if (matches.size === 0) {
+        candies[index] = candies[firstIndex];
+        candies[firstIndex] = firstCandy;
+        candySwapTarget = null;
+        candyMessage.textContent = "That swap did not make a match. Try another!";
+        drawCandyBoard();
+        candyBusy = false;
+        candyResetButton.disabled = false;
+        candyBombTestButton.disabled = false;
+        return;
+      }
+      drawCandyBoard();
+      candyMoves++;
+      candyMovesBox.textContent = candyMoves;
+      candyMessage.textContent = usedPower
+        ? "Power-up activated! Great swap!"
+        : "Nice match! Keep going!";
+      await resolveCandyMatches();
+    }
+
+    candyBoard.addEventListener("click", event => {
       const tile = event.target.closest("button[data-index]");
-      if (!tile || candyBusy) return;
+      if (!tile || candyBusy || Date.now() < suppressCandyClickUntil) return;
       const index = Number(tile.dataset.index);
       if (selectedCandy === null) {
         selectedCandy = index;
@@ -619,32 +776,40 @@
         drawCandyBoard();
         return;
       }
-
-      const firstCandy = candies[firstIndex];
-      candies[firstIndex] = candies[index];
-      candies[index] = firstCandy;
-      selectedCandy = null;
-      const matches = findCandyMatches();
-      candyBusy = true;
-      candyResetButton.disabled = true;
-      await animateCandySwap(firstIndex, index, matches.size > 0);
-      if (matches.size === 0) {
-        candies[index] = candies[firstIndex];
-        candies[firstIndex] = firstCandy;
-        candyMessage.textContent = "That swap did not make a match. Try another!";
-        drawCandyBoard();
-        candyBusy = false;
-        candyResetButton.disabled = false;
-        return;
-      }
-      drawCandyBoard();
-      candyMoves++;
-      candyMovesBox.textContent = candyMoves;
-      candyMessage.textContent = "Nice match! Keep going!";
-      await resolveCandyMatches();
+      attemptCandySwap(firstIndex, index);
     });
 
-    document.getElementById("candyReset").addEventListener("click", makeCandyBoard);
+    candyBoard.addEventListener("pointerdown", event => {
+      const tile = event.target.closest("button[data-index]");
+      if (!tile || candyBusy) return;
+      candySwipeStart = { index: Number(tile.dataset.index), x: event.clientX, y: event.clientY };
+      tile.setPointerCapture(event.pointerId);
+    });
+
+    candyBoard.addEventListener("pointerup", event => {
+      if (!candySwipeStart || candyBusy) {
+        candySwipeStart = null;
+        return;
+      }
+      const { index, x, y } = candySwipeStart;
+      candySwipeStart = null;
+      const deltaX = event.clientX - x;
+      const deltaY = event.clientY - y;
+      if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) < 18) return;
+      const row = Math.floor(index / boardSize);
+      const column = index % boardSize;
+      const targetRow = row + (Math.abs(deltaY) > Math.abs(deltaX) ? Math.sign(deltaY) : 0);
+      const targetColumn = column + (Math.abs(deltaX) >= Math.abs(deltaY) ? Math.sign(deltaX) : 0);
+      if (targetRow < 0 || targetRow >= boardSize || targetColumn < 0 || targetColumn >= boardSize) return;
+      suppressCandyClickUntil = Date.now() + 500;
+      selectedCandy = null;
+      attemptCandySwap(index, targetRow * boardSize + targetColumn);
+    });
+
+    candyBoard.addEventListener("pointercancel", () => { candySwipeStart = null; });
+
+    candyBombTestButton.addEventListener("click", setupCandyBombTest);
+    candyResetButton.addEventListener("click", makeCandyBoard);
     makeCandyBoard();
   </script>
 
