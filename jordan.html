@@ -581,6 +581,26 @@
       return { type, power };
     }
 
+    function playCandyMatchSound() {
+      if (!diceAudio) return;
+      if (diceAudio.state === "suspended") diceAudio.resume();
+      const startAt = diceAudio.currentTime + 0.02;
+      [523.25, 659.25, 783.99].forEach((frequency, index) => {
+        const noteStart = startAt + index * 0.075;
+        const oscillator = diceAudio.createOscillator();
+        const volume = diceAudio.createGain();
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(frequency, noteStart);
+        volume.gain.setValueAtTime(0.0001, noteStart);
+        volume.gain.exponentialRampToValueAtTime(0.09, noteStart + 0.012);
+        volume.gain.exponentialRampToValueAtTime(0.0001, noteStart + 0.18);
+        oscillator.connect(volume);
+        volume.connect(diceAudio.destination);
+        oscillator.start(noteStart);
+        oscillator.stop(noteStart + 0.19);
+      });
+    }
+
     function makeCandyBoard() {
       candies = [];
       for (let index = 0; index < boardSize * boardSize; index++) {
@@ -821,6 +841,7 @@
     async function resolveCandyMatches() {
       let { matches, powers } = findCandyMatches();
       while (matches.size > 0) {
+        playCandyMatchSound();
         const activated = activateCandyPowers(matches);
         const bombActivated = [...activated].some(index => candies[index].power === "bomb");
         await Promise.all([
