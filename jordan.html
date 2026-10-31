@@ -542,14 +542,26 @@
           const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 1 : 420;
           fallAnimations.push(tile.animate(
             [
-              { transform: "translateY(" + fallDistance + "px)", opacity: .35 },
-              { transform: "translateY(0)", opacity: 1 }
+              { transform: "translateY(" + fallDistance + "px) scale(.72) rotate(-8deg)", opacity: .25, offset: 0 },
+              { transform: "translateY(-12px) scale(1.06) rotate(3deg)", opacity: 1, offset: .78 },
+              { transform: "translateY(4px) scale(.97) rotate(-1deg)", opacity: 1, offset: .9 },
+              { transform: "translateY(0) scale(1) rotate(0)", opacity: 1, offset: 1 }
             ],
-            { duration, delay: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : (index % boardSize) * 18, easing: "cubic-bezier(.2,.72,.28,1)" }
+            {
+              duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+                ? 1
+                : Math.min(780, duration + Math.round(Math.abs(fallDistance / (sampleCandyHeight() + 5)) * 55)),
+              delay: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : (index % boardSize) * 24,
+              easing: "cubic-bezier(.2,.72,.28,1)"
+            }
           ).finished);
         }
       });
       return Promise.all(fallAnimations);
+    }
+
+    function sampleCandyHeight() {
+      return candyBoard.querySelector("button")?.getBoundingClientRect().height || candyBoard.clientHeight / boardSize;
     }
 
     function animateCandySwap(firstIndex, secondIndex, matched) {
@@ -697,10 +709,7 @@
         if (!activated.has(index)) candies[index] = makeCandy(candies[index].type, power);
       });
       const fallDistances = new Map();
-      const sampleTile = candyBoard.querySelector("button");
-      const rowStep = sampleTile
-        ? sampleTile.getBoundingClientRect().height + parseFloat(getComputedStyle(candyBoard).rowGap)
-        : candyBoard.clientHeight / boardSize;
+      const rowStep = sampleCandyHeight() + parseFloat(getComputedStyle(candyBoard).rowGap);
       for (let column = 0; column < boardSize; column++) {
         const remaining = [];
         for (let row = boardSize - 1; row >= 0; row--) {
@@ -720,7 +729,7 @@
           if (distance !== 0) fallDistances.set(destinationIndex, distance);
         }
       }
-      return fallDistances;
+      return { fallDistances, clearedCount: matches.size };
     }
 
     async function resolveCandyMatches() {
@@ -732,7 +741,9 @@
           animateCandyMatches(matches),
           bombActivated ? showCandyRainbow() : Promise.resolve()
         ]);
-        const fallDistances = clearAndRefill(matches, powers, activated);
+        const { fallDistances, clearedCount } = clearAndRefill(matches, powers, activated);
+        const reaction = clearedCount > 4 ? "Divine!" : clearedCount === 4 ? "Tasty!" : "Yummy!";
+        candyMessage.textContent = reaction + " " + clearedCount + (clearedCount === 1 ? " fruit!" : " fruits!");
         candySwapTarget = null;
         candyBombTargetType = null;
         await drawCandyBoard(fallDistances);
