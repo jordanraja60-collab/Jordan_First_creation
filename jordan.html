@@ -118,7 +118,7 @@
     .dice-stage { display: grid; place-items: center; height: 190px; perspective: 700px; transition: transform 1700ms cubic-bezier(.2,.7,.25,1); }
     .dice-stage.is-zooming { transform: scale(1.12); }
     .dice-cube { position: relative; width: 112px; height: 112px; transform-style: preserve-3d; }
-    .dice-cube.is-rolling { animation: dice-roll 1700ms cubic-bezier(.16,.76,.26,1) both; }
+    .dice-cube.is-rolling { animation: dice-roll 900ms linear infinite; }
     .dice-face { position: absolute; inset: 0; display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); gap: 5px; padding: 15px; background: linear-gradient(145deg, #fff, #ffe9e6); border: 3px solid #d62828; border-radius: 18px; box-shadow: inset 0 0 14px #9d1b1b20; backface-visibility: hidden; }
     .dice-face.front { transform: translateZ(56px); }
     .dice-face.back { transform: rotateY(180deg) translateZ(56px); }
@@ -133,16 +133,11 @@
     .dice-face[data-value="4"] .dice-dot:nth-child(1), .dice-face[data-value="4"] .dice-dot:nth-child(3), .dice-face[data-value="4"] .dice-dot:nth-child(7), .dice-face[data-value="4"] .dice-dot:nth-child(9),
     .dice-face[data-value="5"] .dice-dot:nth-child(1), .dice-face[data-value="5"] .dice-dot:nth-child(3), .dice-face[data-value="5"] .dice-dot:nth-child(5), .dice-face[data-value="5"] .dice-dot:nth-child(7), .dice-face[data-value="5"] .dice-dot:nth-child(9),
     .dice-face[data-value="6"] .dice-dot:nth-child(1), .dice-face[data-value="6"] .dice-dot:nth-child(3), .dice-face[data-value="6"] .dice-dot:nth-child(4), .dice-face[data-value="6"] .dice-dot:nth-child(6), .dice-face[data-value="6"] .dice-dot:nth-child(7), .dice-face[data-value="6"] .dice-dot:nth-child(9) { opacity: 1; }
-    .dice-roll-button { min-width: 150px; }
-    .dice-roll-button:disabled { cursor: not-allowed; opacity: .55; }
     .dice-message { min-height: 3em; margin-top: 16px; font-size: 1.1rem; font-weight: bold; }
     .dice-confetti { position: fixed; top: -20px; z-index: 20; width: 10px; height: 16px; pointer-events: none; animation: confetti-fall var(--fall-time) cubic-bezier(.2,.7,.7,.2) forwards; }
     @keyframes dice-roll {
-      0% { transform: rotateX(0) rotateY(0) rotateZ(0); }
-      24% { transform: rotateX(250deg) rotateY(270deg) rotateZ(90deg); }
-      52% { transform: rotateX(510deg) rotateY(560deg) rotateZ(180deg); }
-      78% { transform: rotateX(700deg) rotateY(740deg) rotateZ(270deg); }
-      100% { transform: rotateX(720deg) rotateY(720deg) rotateZ(360deg); }
+      from { transform: rotateX(0) rotateY(0) rotateZ(0); }
+      to { transform: rotateX(360deg) rotateY(360deg) rotateZ(360deg); }
     }
     @keyframes confetti-fall {
       0% { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 1; }
@@ -287,7 +282,6 @@
             <div class="dice-face bottom" data-value="5"></div>
           </div>
         </div>
-        <button type="button" class="dice-roll-button" id="diceRoll" disabled>Roll the dice!</button>
         <p class="dice-message" id="diceMessage" aria-live="polite">Choose your lucky number to start!</p>
       </div>
     </div>
@@ -390,7 +384,6 @@
     const diceChoices = document.getElementById("diceChoices");
     const diceStage = document.getElementById("diceStage");
     const diceCube = document.getElementById("diceCube");
-    const diceRollButton = document.getElementById("diceRoll");
     const diceMessage = document.getElementById("diceMessage");
     const frontDieFace = diceCube.querySelector(".front");
     const reduceDiceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -404,6 +397,29 @@
       }
     });
 
+    async function rollDice() {
+      if (diceBusy || diceGuess === null) return;
+      diceBusy = true;
+      diceChoices.querySelectorAll("button").forEach(button => { button.disabled = true; });
+      diceMessage.textContent = "Rolling...";
+      diceStage.classList.add("is-zooming");
+      frontDieFace.dataset.value = String(randomNumber(1, 6));
+      diceCube.classList.remove("is-rolling");
+      void diceCube.offsetWidth;
+      diceCube.classList.add("is-rolling");
+      await new Promise(resolve => setTimeout(resolve, reduceDiceMotion ? 50 : 2200));
+      diceCube.classList.remove("is-rolling");
+
+      const rolledNumber = Number(frontDieFace.dataset.value);
+      const guessedCorrectly = rolledNumber === diceGuess;
+      showDiceConfetti();
+      diceMessage.textContent = "You guessed " + diceGuess + " and rolled " + rolledNumber + ". " +
+        (guessedCorrectly ? "You got it right! 🎉" : "Not this time — try again!");
+      diceChoices.querySelectorAll("button").forEach(button => { button.disabled = false; });
+      diceStage.classList.remove("is-zooming");
+      diceBusy = false;
+    }
+
     diceChoices.addEventListener("click", event => {
       const choice = event.target.closest("button");
       if (!choice || diceBusy) return;
@@ -411,8 +427,7 @@
       diceChoices.querySelectorAll("button").forEach(button => {
         button.setAttribute("aria-pressed", String(button === choice));
       });
-      diceRollButton.disabled = false;
-      diceMessage.textContent = "You picked " + diceGuess + ". Ready to roll?";
+      rollDice();
     });
 
     function showDiceConfetti() {
@@ -431,31 +446,6 @@
         confetti.addEventListener("animationend", () => confetti.remove(), { once: true });
       }
     }
-
-    diceRollButton.addEventListener("click", async () => {
-      if (diceBusy || diceGuess === null) return;
-      diceBusy = true;
-      diceRollButton.disabled = true;
-      diceChoices.querySelectorAll("button").forEach(button => { button.disabled = true; });
-      diceMessage.textContent = "Rolling...";
-      diceStage.classList.add("is-zooming");
-      frontDieFace.dataset.value = String(randomNumber(1, 6));
-      diceCube.classList.remove("is-rolling");
-      void diceCube.offsetWidth;
-      diceCube.classList.add("is-rolling");
-      await new Promise(resolve => setTimeout(resolve, reduceDiceMotion ? 50 : 1700));
-
-      const rolledNumber = Number(frontDieFace.dataset.value);
-      const guessedCorrectly = rolledNumber === diceGuess;
-      showDiceConfetti();
-      diceMessage.textContent = "You guessed " + diceGuess + " and rolled " + rolledNumber + ". " +
-        (guessedCorrectly ? "You got it right! 🎉" : "Not this time — try again!");
-      diceChoices.querySelectorAll("button").forEach(button => { button.disabled = false; });
-      diceStage.classList.remove("is-zooming");
-      diceBusy = false;
-      diceRollButton.disabled = false;
-      diceRollButton.textContent = "Roll again!";
-    });
 
     /* ========== CANDY MATCH GAME CODE ========== */
     const candyTypes = [
