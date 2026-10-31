@@ -65,27 +65,7 @@
     .fav-list strong { color: var(--red); }
     .fav-arrow { color: var(--dark-red); font-size: 0.9rem; font-weight: bold; white-space: nowrap; }
 
-    /* ========== 6. BOOKSHELF ========= */
-    .book-form { display: grid; gap: 14px; padding: 22px; background: var(--white); border: 2px solid #e8c5c2; border-radius: 12px; }
-    .book-form label { display: grid; gap: 5px; font-weight: bold; }
-    .book-form input, .book-form textarea { width: 100%; padding: 10px 12px; border: 2px solid #d8c3c1; border-radius: 8px; color: var(--ink); font: inherit; }
-    .book-form textarea { min-height: 110px; resize: vertical; }
-    .book-form small { font-weight: normal; }
-    .book-form-status { min-height: 1.6em; font-weight: bold; }
-    .book-collection { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 16px; margin-top: 24px; }
-    .book-card { overflow: hidden; background: var(--white); border: 2px solid #e8c5c2; border-radius: 12px; box-shadow: 0 5px 16px #26181a12; }
-    .book-cover { display: block; width: 100%; height: 230px; background: var(--pink); object-fit: cover; }
-    .book-card-content { display: grid; gap: 8px; padding: 14px; }
-    .book-card h3 { font-family: Georgia, "Times New Roman", serif; font-size: 1.2rem; line-height: 1.25; }
-    .book-author { color: #60484a; }
-    .book-review { white-space: pre-wrap; overflow-wrap: anywhere; }
-    .book-card-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-    .book-card-actions a { display: inline-block; padding: 7px 10px; border-radius: 7px; background: var(--pink); color: var(--dark-red); font-weight: bold; text-decoration: none; }
-    .book-card-actions button { padding: 7px 10px; font-size: .95rem; }
-    .book-empty { margin-top: 18px; text-align: center; }
-    .books-note { margin-bottom: 18px; }
-
-    /* ========== 7. MATHS CHALLENGE ========== */
+    /* ========== 6. MATHS CHALLENGE ========== */
     .quiz { background: var(--white); border: 3px solid var(--red); border-radius: 16px; padding: 24px; text-align: center; }
     .question { font-family: Georgia, serif; font-size: 2.6rem; color: var(--red); margin-bottom: 14px; }
     .quiz input { font-size: 1.3rem; width: 120px; padding: 8px; text-align: center; border: 2px solid var(--ink); border-radius: 8px; }
@@ -94,7 +74,7 @@
     .message { min-height: 1.8em; margin-top: 12px; font-weight: bold; }
     .score { margin-top: 6px; }
 
-    /* ========== 8. CANDY MATCH ========= */
+    /* ========== 7. CANDY MATCH ========= */
     .candy-game { position: relative; background: var(--white); border: 3px solid var(--red); border-radius: 12px; padding: 20px; }
     .candy-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
     .candy-stats { display: flex; flex-wrap: wrap; gap: 8px 20px; font-weight: bold; }
@@ -140,7 +120,7 @@
       .candy-board button.exploding, .candy-board button.exploding::after { animation-duration: 1ms; }
     }
 
-    /* ========== 9. GUESS THE DICE ========= */
+    /* ========== 8. GUESS THE DICE ========= */
     .dice-game { position: relative; overflow: hidden; background: var(--white); border: 3px solid var(--red); border-radius: 16px; padding: 28px 20px; text-align: center; }
     .dice-prompt { font-size: 1.1rem; font-weight: bold; }
     .dice-choices { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
@@ -188,7 +168,7 @@
       .dice-cube.is-rolling, .dice-cube.rainbow-roll .dice-face, .dice-confetti { animation-duration: 1ms; }
     }
 
-    /* ========== 10. BUTTONS ========== */
+    /* ========== 9. BUTTONS ========== */
     button {
       background: var(--red); color: var(--white);
       border: none; border-radius: 8px;
@@ -197,7 +177,7 @@
     button:hover { background: var(--dark-red); }
     button:focus, input:focus, a:focus { outline: 3px solid var(--ink); outline-offset: 2px; }
 
-    /* ========== 11. FOOTER ========== */
+    /* ========== 10. FOOTER ========== */
     footer { background: var(--ink); color: var(--white); text-align: center; padding: 24px 0; }
   </style>
 </head>
@@ -211,7 +191,7 @@
       <div>
         <a href="#about">About me</a>
         <a href="#favourites">Favourites</a>
-        <a href="#books">Books</a>
+        <a href="books.html">Books</a>
         <a href="#challenge">Challenge</a>
         <a href="#candy">Candy game</a>
         <a href="#dice">Guess the dice</a>
@@ -253,37 +233,6 @@
           <li><a href="favourite-777.html"><span><strong>Number:</strong> my favourite number is 777</span><span class="fav-arrow">Discover 777 →</span></a></li>
           <li><a href="favourite-learning.html"><span><strong>Learning:</strong> HTML, CSS and JavaScript</span><span class="fav-arrow">Explore coding →</span></a></li>
       </ul>
-    </div>
-  </section>
-
-  <!-- ===== BOOK COLLECTION ===== -->
-  <section id="books">
-    <div class="wrapper">
-      <h2>My book collection</h2>
-      <p class="books-note">Add a cover, your review, and an optional book file. Your collection is saved in this browser on this device.</p>
-      <form class="book-form" id="bookForm">
-        <label for="bookTitle">Book title
-          <input id="bookTitle" name="title" type="text" maxlength="120" required>
-        </label>
-        <label for="bookAuthor">Author <small>(optional)</small>
-          <input id="bookAuthor" name="author" type="text" maxlength="120">
-        </label>
-        <label for="bookCover">Book cover image
-          <input id="bookCover" name="cover" type="file" accept="image/*" required>
-          <small>Choose an image file up to 10 MB.</small>
-        </label>
-        <label for="bookReview">My review
-          <textarea id="bookReview" name="review" maxlength="3000" required></textarea>
-        </label>
-        <label for="bookFile">Book file <small>(optional)</small>
-          <input id="bookFile" name="file" type="file" accept=".pdf,.epub,.txt,.docx,application/pdf,application/epub+zip,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
-          <small>PDF, EPUB, TXT, or DOCX, up to 50 MB. Only add files you have permission to store.</small>
-        </label>
-        <button type="submit" id="bookSave">Add to my collection</button>
-        <p class="book-form-status" id="bookFormStatus" role="status" aria-live="polite"></p>
-      </form>
-      <p class="book-empty" id="bookEmpty">Your collection is empty. Add your first book above!</p>
-      <div class="book-collection" id="bookCollection" aria-label="My books"></div>
     </div>
   </section>
 
@@ -597,188 +546,6 @@
         confetti.addEventListener("animationend", () => confetti.remove(), { once: true });
       }
     }
-
-    /* ========== BOOK COLLECTION CODE ========== */
-    const bookForm = document.getElementById("bookForm");
-    const bookFormStatus = document.getElementById("bookFormStatus");
-    const bookCollection = document.getElementById("bookCollection");
-    const bookEmptyMessage = document.getElementById("bookEmpty");
-    const bookSaveButton = document.getElementById("bookSave");
-    let bookDatabasePromise;
-    let bookObjectUrls = [];
-
-    function openBookDatabase() {
-      if (!window.indexedDB) return Promise.reject(new Error("This browser does not support saved book collections."));
-      if (!bookDatabasePromise) {
-        bookDatabasePromise = new Promise((resolve, reject) => {
-          const request = indexedDB.open("jordans-book-collection", 1);
-          request.onupgradeneeded = () => {
-            if (!request.result.objectStoreNames.contains("books")) {
-              request.result.createObjectStore("books", { keyPath: "id" });
-            }
-          };
-          request.onsuccess = () => resolve(request.result);
-          request.onerror = () => reject(new Error("Could not open your book collection: " + request.error.message));
-          request.onblocked = () => reject(new Error("Your book collection is busy in another tab. Close that tab and try again."));
-        });
-      }
-      return bookDatabasePromise;
-    }
-
-    async function getSavedBooks() {
-      const database = await openBookDatabase();
-      return new Promise((resolve, reject) => {
-        const transaction = database.transaction("books", "readonly");
-        const request = transaction.objectStore("books").getAll();
-        request.onsuccess = () => resolve(request.result.sort((first, second) => second.createdAt - first.createdAt));
-        request.onerror = () => reject(new Error("Could not read your saved books: " + request.error.message));
-        transaction.onabort = () => reject(new Error("Reading your saved books was interrupted."));
-      });
-    }
-
-    async function saveBook(book) {
-      const database = await openBookDatabase();
-      return new Promise((resolve, reject) => {
-        const transaction = database.transaction("books", "readwrite");
-        transaction.objectStore("books").add(book);
-        transaction.oncomplete = resolve;
-        transaction.onerror = () => reject(new Error("Could not save this book: " + transaction.error.message));
-        transaction.onabort = () => reject(new Error("Saving this book was interrupted."));
-      });
-    }
-
-    async function deleteSavedBook(id) {
-      const database = await openBookDatabase();
-      return new Promise((resolve, reject) => {
-        const transaction = database.transaction("books", "readwrite");
-        transaction.objectStore("books").delete(id);
-        transaction.oncomplete = resolve;
-        transaction.onerror = () => reject(new Error("Could not remove this book: " + transaction.error.message));
-        transaction.onabort = () => reject(new Error("Removing this book was interrupted."));
-      });
-    }
-
-    async function renderBookCollection() {
-      const books = await getSavedBooks();
-      bookObjectUrls.forEach(url => URL.revokeObjectURL(url));
-      bookObjectUrls = [];
-      bookCollection.replaceChildren();
-      bookEmptyMessage.hidden = books.length > 0;
-      books.forEach(book => {
-        const coverUrl = URL.createObjectURL(book.cover);
-        bookObjectUrls.push(coverUrl);
-        const card = document.createElement("article");
-        card.className = "book-card";
-        const cover = document.createElement("img");
-        cover.className = "book-cover";
-        cover.src = coverUrl;
-        cover.alt = "Cover of " + book.title;
-        cover.loading = "lazy";
-        const content = document.createElement("div");
-        content.className = "book-card-content";
-        const title = document.createElement("h3");
-        title.textContent = book.title;
-        content.append(title);
-        if (book.author) {
-          const author = document.createElement("p");
-          author.className = "book-author";
-          author.textContent = "by " + book.author;
-          content.append(author);
-        }
-        const review = document.createElement("p");
-        review.className = "book-review";
-        review.textContent = book.review;
-        content.append(review);
-        const actions = document.createElement("div");
-        actions.className = "book-card-actions";
-        if (book.file) {
-          const fileUrl = URL.createObjectURL(book.file);
-          bookObjectUrls.push(fileUrl);
-          const fileLink = document.createElement("a");
-          fileLink.href = fileUrl;
-          fileLink.download = book.fileName;
-          fileLink.textContent = "Download " + book.fileName;
-          actions.append(fileLink);
-        }
-        const removeButton = document.createElement("button");
-        removeButton.type = "button";
-        removeButton.dataset.deleteBook = book.id;
-        removeButton.textContent = "Remove";
-        actions.append(removeButton);
-        content.append(actions);
-        card.append(cover, content);
-        bookCollection.append(card);
-      });
-    }
-
-    bookForm.addEventListener("submit", async event => {
-      event.preventDefault();
-      const formData = new FormData(bookForm);
-      const cover = formData.get("cover");
-      const file = formData.get("file");
-      if (!(cover instanceof File) || !cover.type.startsWith("image/")) {
-        bookFormStatus.textContent = "Choose a valid cover image.";
-        return;
-      }
-      if (cover.size > 10 * 1024 * 1024) {
-        bookFormStatus.textContent = "The cover image must be 10 MB or smaller.";
-        return;
-      }
-      const acceptedBookExtensions = [".pdf", ".epub", ".txt", ".docx"];
-      if (file instanceof File && file.size > 0) {
-        const extension = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
-        if (!acceptedBookExtensions.includes(extension)) {
-          bookFormStatus.textContent = "Book files must be PDF, EPUB, TXT, or DOCX.";
-          return;
-        }
-        if (file.size > 50 * 1024 * 1024) {
-          bookFormStatus.textContent = "The book file must be 50 MB or smaller.";
-          return;
-        }
-      }
-
-      bookSaveButton.disabled = true;
-      bookFormStatus.textContent = "Saving your book...";
-      try {
-        await saveBook({
-          id: Date.now() + "-" + Math.random().toString(36).slice(2),
-          title: String(formData.get("title")).trim(),
-          author: String(formData.get("author")).trim(),
-          review: String(formData.get("review")).trim(),
-          cover,
-          file: file instanceof File && file.size > 0 ? file : null,
-          fileName: file instanceof File ? file.name : "",
-          createdAt: Date.now()
-        });
-        bookForm.reset();
-        await renderBookCollection();
-        bookFormStatus.textContent = "Book added to your collection!";
-      } catch (error) {
-        bookFormStatus.textContent = error.message;
-      } finally {
-        bookSaveButton.disabled = false;
-      }
-    });
-
-    bookCollection.addEventListener("click", async event => {
-      const removeButton = event.target.closest("button[data-delete-book]");
-      if (!removeButton) return;
-      removeButton.disabled = true;
-      bookFormStatus.textContent = "Removing book...";
-      try {
-        await deleteSavedBook(removeButton.dataset.deleteBook);
-        await renderBookCollection();
-        bookFormStatus.textContent = "Book removed from your collection.";
-      } catch (error) {
-        bookFormStatus.textContent = error.message;
-        removeButton.disabled = false;
-      }
-    });
-
-    renderBookCollection().catch(error => {
-      bookFormStatus.textContent = error.message;
-      bookSaveButton.disabled = true;
-    });
 
     /* ========== CANDY MATCH GAME CODE ========== */
     const candyTypes = [

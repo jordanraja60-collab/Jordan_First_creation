@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#d62828">
+  <title>My Bookshelf | Jordan's Maths Corner</title>
+  <style>
+    :root {
+      --red: #d62828;
+      --dark-red: #9d1b1b;
+      --pink: #ffe9e6;
+      --ink: #26181a;
+      --muted: #715c5d;
+      --white: #fff;
+      --line: #efd1cd;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #fffaf9; color: var(--ink); font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif; line-height: 1.6; }
+    a { color: inherit; }
+    .wrapper { width: min(1120px, calc(100% - 36px)); margin: 0 auto; }
+    .site-nav { background: var(--red); }
+    .nav-inner { display: flex; min-height: 62px; align-items: center; justify-content: space-between; gap: 16px; }
+    .brand { color: var(--white); font-size: 1.15rem; font-weight: bold; text-decoration: none; }
+    .home-link { color: var(--white); font-weight: bold; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+    .books-hero { position: relative; overflow: hidden; padding: 48px 0 42px; background: linear-gradient(120deg, #d62828, #a21d32 70%, #78304d); color: var(--white); }
+    .books-hero::after { position: absolute; right: 7%; bottom: -100px; width: 250px; height: 250px; border: 34px solid #ffffff16; border-radius: 50%; content: ""; }
+    .eyebrow { margin: 0 0 8px; color: #ffe6a3; font-size: .85rem; font-weight: bold; letter-spacing: .14em; text-transform: uppercase; }
+    h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; line-height: 1.15; }
+    h1 { max-width: 700px; margin: 0; font-size: clamp(2.5rem, 7vw, 4.5rem); }
+    .books-hero p:last-child { max-width: 650px; margin: 15px 0 0; font-size: 1.1rem; }
+    main { padding: 34px 0 64px; }
+    .collection-heading { display: flex; align-items: end; justify-content: space-between; gap: 14px; margin-bottom: 18px; }
+    h2 { margin: 0; color: var(--red); font-size: clamp(1.7rem, 4vw, 2.25rem); }
+    .book-count { padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--dark-red); font-weight: bold; white-space: nowrap; }
+    .book-collection { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 235px), 1fr)); align-items: stretch; gap: 22px; }
+    .book-card { display: flex; min-width: 0; flex-direction: column; overflow: hidden; border: 1px solid var(--line); border-radius: 16px; background: var(--white); box-shadow: 0 8px 24px #5526260d; transition: transform 180ms ease, box-shadow 180ms ease; }
+    .book-card:hover { transform: translateY(-4px); box-shadow: 0 14px 32px #5526261c; }
+    .book-cover-wrap { display: grid; min-height: 290px; place-items: center; padding: 16px; background: radial-gradient(ellipse at center, #fff 0%, #fff8f6 54%, #f8e7e4 100%); }
+    .book-cover { display: block; width: 100%; height: 265px; object-fit: contain; filter: drop-shadow(0 10px 12px #29120f2a); }
+    .book-card-content { display: flex; flex: 1; flex-direction: column; gap: 8px; padding: 18px; }
+    .book-card h3 { margin: 0; font-size: 1.35rem; overflow-wrap: anywhere; }
+    .book-author { margin: -4px 0 0; color: var(--muted); font-size: .95rem; }
+    .book-review { margin: 4px 0 8px; overflow-wrap: anywhere; white-space: pre-wrap; }
+    .book-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin-top: auto; padding-top: 8px; }
+    .book-file-link, .remove-book { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; padding: 8px 12px; border-radius: 8px; font: inherit; font-size: .92rem; font-weight: bold; text-decoration: none; }
+    .book-file-link { background: var(--pink); color: var(--dark-red); }
+    .remove-book { border: 1px solid var(--line); background: var(--white); color: var(--dark-red); cursor: pointer; }
+    .remove-book:hover { background: #fff1ef; }
+    .empty-state { padding: 38px 20px; border: 2px dashed #e6b8b2; border-radius: 16px; background: var(--white); text-align: center; }
+    .empty-icon { margin-bottom: 8px; font-size: 2.6rem; }
+    .empty-state p { margin: 8px 0 0; color: var(--muted); }
+    .add-book { margin-top: 42px; padding: 26px; border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(140deg, #fff, #fff5f3); box-shadow: 0 8px 24px #5526260d; }
+    .add-book-intro { margin: 8px 0 20px; color: var(--muted); }
+    .book-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .book-form label { display: grid; align-content: start; gap: 6px; font-weight: bold; }
+    .book-form label.full-width, .book-form-status, .book-save { grid-column: 1 / -1; }
+    .book-form input, .book-form textarea { width: 100%; min-width: 0; padding: 11px 12px; border: 1px solid #cdb9b7; border-radius: 8px; background: var(--white); color: var(--ink); font: inherit; }
+    .book-form input[type="file"] { padding: 9px; font-size: .94rem; }
+    .book-form textarea { min-height: 120px; resize: vertical; }
+    .book-form small { color: var(--muted); font-size: .85rem; font-weight: normal; }
+    .book-save { justify-self: start; min-height: 46px; padding: 10px 18px; border: 0; border-radius: 9px; background: var(--red); color: var(--white); font: inherit; font-weight: bold; cursor: pointer; }
+    .book-save:hover { background: var(--dark-red); }
+    .book-save:disabled, .remove-book:disabled { cursor: wait; opacity: .6; }
+    .book-form-status { min-height: 1.5em; margin: 0; font-weight: bold; }
+    :focus-visible { outline: 3px solid #382323; outline-offset: 3px; }
+    footer { padding: 22px 0; background: var(--ink); color: var(--white); text-align: center; }
+    footer p { margin: 0; }
+    @media (max-width: 600px) {
+      .wrapper { width: min(100% - 24px, 1120px); }
+      .books-hero { padding: 38px 0 34px; }
+      main { padding-top: 26px; }
+      .collection-heading { align-items: start; flex-direction: column; }
+      .book-cover-wrap { min-height: 250px; }
+      .book-cover { height: 225px; }
+      .add-book { padding: 18px; }
+      .book-form { grid-template-columns: 1fr; }
+      .book-form label.full-width, .book-form-status, .book-save { grid-column: auto; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="site-nav">
+    <div class="wrapper nav-inner">
+      <a class="brand" href="jordan.html">Jordan's Maths Corner</a>
+      <a class="home-link" href="jordan.html">← Back to my website</a>
+    </div>
+  </nav>
+
+  <header class="books-hero">
+    <div class="wrapper">
+      <p class="eyebrow">Stories worth keeping</p>
+      <h1>My Bookshelf 📚</h1>
+      <p>Every book has a story. Keep your favorite covers, reviews, and reading files together on your shelf.</p>
+    </div>
+  </header>
+
+  <main class="wrapper">
+    <section aria-labelledby="collectionTitle">
+      <div class="collection-heading">
+        <h2 id="collectionTitle">My collection</h2>
+        <span class="book-count" id="bookCount" aria-live="polite">Loading books…</span>
+      </div>
+      <p class="empty-state" id="bookEmpty" hidden>
+        <span class="empty-icon" aria-hidden="true">📖</span><br>
+        <strong>Your bookshelf is waiting for its first story.</strong>
+        <span><br>Add a book below to get started!</span>
+      </p>
+      <div class="book-collection" id="bookCollection" aria-label="My books"></div>
+    </section>
+
+    <section class="add-book" aria-labelledby="addBookTitle">
+      <h2 id="addBookTitle">Add a book to your shelf</h2>
+      <p class="add-book-intro">Add the cover and your review. You can attach a book file too, if you have permission to store it.</p>
+      <form class="book-form" id="bookForm">
+        <label for="bookTitle">Book title
+          <input id="bookTitle" name="title" type="text" maxlength="120" autocomplete="off" required>
+        </label>
+        <label for="bookAuthor">Author <small>Optional</small>
+          <input id="bookAuthor" name="author" type="text" maxlength="120" autocomplete="off">
+        </label>
+        <label for="bookCover">Cover image
+          <input id="bookCover" name="cover" type="file" accept="image/*" required>
+          <small>Image file, up to 10 MB.</small>
+        </label>
+        <label for="bookFile">Book file <small>Optional</small>
+          <input id="bookFile" name="file" type="file" accept=".pdf,.epub,.txt,.docx,application/pdf,application/epub+zip,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+          <small>PDF, EPUB, TXT, or DOCX, up to 50 MB.</small>
+        </label>
+        <label class="full-width" for="bookReview">My review
+          <textarea id="bookReview" name="review" maxlength="3000" required placeholder="What did you enjoy about this book?"></textarea>
+        </label>
+        <button class="book-save" type="submit" id="bookSave">＋ Add to my bookshelf</button>
+        <p class="book-form-status" id="bookFormStatus" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+  </main>
+
+  <footer><div class="wrapper"><p>Made by Jordan. Happy reading! 📚</p></div></footer>
+
+  <script>
+    const bookForm = document.getElementById("bookForm");
+    const bookFormStatus = document.getElementById("bookFormStatus");
+    const bookCollection = document.getElementById("bookCollection");
+    const bookEmptyMessage = document.getElementById("bookEmpty");
+    const bookCount = document.getElementById("bookCount");
+    const bookSaveButton = document.getElementById("bookSave");
+    let bookDatabasePromise;
+    let bookObjectUrls = [];
+
+    function openBookDatabase() {
+      if (!window.indexedDB) return Promise.reject(new Error("This browser does not support saved book collections."));
+      if (!bookDatabasePromise) {
+        bookDatabasePromise = new Promise((resolve, reject) => {
+          const request = indexedDB.open("jordans-book-collection", 1);
+          request.onupgradeneeded = () => {
+            if (!request.result.objectStoreNames.contains("books")) {
+              request.result.createObjectStore("books", { keyPath: "id" });
+            }
+          };
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(new Error("Could not open your book collection: " + request.error.message));
+          request.onblocked = () => reject(new Error("Your book collection is busy in another tab. Close that tab and try again."));
+        });
+      }
+      return bookDatabasePromise;
+    }
+
+    async function getSavedBooks() {
+      const database = await openBookDatabase();
+      return new Promise((resolve, reject) => {
+        const transaction = database.transaction("books", "readonly");
+        const request = transaction.objectStore("books").getAll();
+        request.onsuccess = () => resolve(request.result.sort((first, second) => second.createdAt - first.createdAt));
+        request.onerror = () => reject(new Error("Could not read your saved books: " + request.error.message));
+        transaction.onabort = () => reject(new Error("Reading your saved books was interrupted."));
+      });
+    }
+
+    async function saveBook(book) {
+      const database = await openBookDatabase();
+      return new Promise((resolve, reject) => {
+        const transaction = database.transaction("books", "readwrite");
+        transaction.objectStore("books").add(book);
+        transaction.oncomplete = resolve;
+        transaction.onerror = () => reject(new Error("Could not save this book: " + transaction.error.message));
+        transaction.onabort = () => reject(new Error("Saving this book was interrupted."));
+      });
+    }
+
+    async function deleteSavedBook(id) {
+      const database = await openBookDatabase();
+      return new Promise((resolve, reject) => {
+        const transaction = database.transaction("books", "readwrite");
+        transaction.objectStore("books").delete(id);
+        transaction.oncomplete = resolve;
+        transaction.onerror = () => reject(new Error("Could not remove this book: " + transaction.error.message));
+        transaction.onabort = () => reject(new Error("Removing this book was interrupted."));
+      });
+    }
+
+    async function renderBookCollection() {
+      const books = await getSavedBooks();
+      bookObjectUrls.forEach(url => URL.revokeObjectURL(url));
+      bookObjectUrls = [];
+      bookCollection.replaceChildren();
+      bookEmptyMessage.hidden = books.length > 0;
+      bookCount.textContent = books.length + (books.length === 1 ? " book" : " books");
+      books.forEach(book => {
+        const card = document.createElement("article");
+        card.className = "book-card";
+        const coverWrap = document.createElement("div");
+        coverWrap.className = "book-cover-wrap";
+        const cover = document.createElement("img");
+        cover.className = "book-cover";
+        cover.src = URL.createObjectURL(book.cover);
+        bookObjectUrls.push(cover.src);
+        cover.alt = "Cover of " + book.title;
+        cover.loading = "lazy";
+        coverWrap.append(cover);
+
+        const content = document.createElement("div");
+        content.className = "book-card-content";
+        const title = document.createElement("h3");
+        title.textContent = book.title;
+        content.append(title);
+        if (book.author) {
+          const author = document.createElement("p");
+          author.className = "book-author";
+          author.textContent = "by " + book.author;
+          content.append(author);
+        }
+        const review = document.createElement("p");
+        review.className = "book-review";
+        review.textContent = book.review;
+        content.append(review);
+
+        const actions = document.createElement("div");
+        actions.className = "book-card-actions";
+        if (book.file) {
+          const fileUrl = URL.createObjectURL(book.file);
+          bookObjectUrls.push(fileUrl);
+          const fileLink = document.createElement("a");
+          fileLink.className = "book-file-link";
+          fileLink.href = fileUrl;
+          fileLink.download = book.fileName;
+          fileLink.textContent = "↓ " + book.fileName;
+          actions.append(fileLink);
+        }
+        const removeButton = document.createElement("button");
+        removeButton.className = "remove-book";
+        removeButton.type = "button";
+        removeButton.dataset.deleteBook = book.id;
+        removeButton.textContent = "Remove";
+        actions.append(removeButton);
+        content.append(actions);
+        card.append(coverWrap, content);
+        bookCollection.append(card);
+      });
+    }
+
+    bookForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const formData = new FormData(bookForm);
+      const cover = formData.get("cover");
+      const file = formData.get("file");
+      if (!(cover instanceof File) || !cover.type.startsWith("image/")) {
+        bookFormStatus.textContent = "Choose a valid cover image.";
+        return;
+      }
+      if (cover.size > 10 * 1024 * 1024) {
+        bookFormStatus.textContent = "The cover image must be 10 MB or smaller.";
+        return;
+      }
+      const acceptedBookExtensions = [".pdf", ".epub", ".txt", ".docx"];
+      if (file instanceof File && file.size > 0) {
+        const extension = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+        if (!acceptedBookExtensions.includes(extension)) {
+          bookFormStatus.textContent = "Book files must be PDF, EPUB, TXT, or DOCX.";
+          return;
+        }
+        if (file.size > 50 * 1024 * 1024) {
+          bookFormStatus.textContent = "The book file must be 50 MB or smaller.";
+          return;
+        }
+      }
+      bookSaveButton.disabled = true;
+      bookFormStatus.textContent = "Saving your book...";
+      try {
+        await saveBook({
+          id: Date.now() + "-" + Math.random().toString(36).slice(2),
+          title: String(formData.get("title")).trim(),
+          author: String(formData.get("author")).trim(),
+          review: String(formData.get("review")).trim(),
+          cover,
+          file: file instanceof File && file.size > 0 ? file : null,
+          fileName: file instanceof File ? file.name : "",
+          createdAt: Date.now()
+        });
+        bookForm.reset();
+        await renderBookCollection();
+        bookFormStatus.textContent = "Book added to your bookshelf!";
+      } catch (error) {
+        bookFormStatus.textContent = error.message;
+      } finally {
+        bookSaveButton.disabled = false;
+      }
+    });
+
+    bookCollection.addEventListener("click", async event => {
+      const removeButton = event.target.closest("button[data-delete-book]");
+      if (!removeButton) return;
+      removeButton.disabled = true;
+      bookFormStatus.textContent = "Removing book...";
+      try {
+        await deleteSavedBook(removeButton.dataset.deleteBook);
+        await renderBookCollection();
+        bookFormStatus.textContent = "Book removed from your bookshelf.";
+      } catch (error) {
+        bookFormStatus.textContent = error.message;
+        removeButton.disabled = false;
+      }
+    });
+
+    renderBookCollection().catch(error => {
+      bookCount.textContent = "Unable to load books";
+      bookFormStatus.textContent = error.message;
+      bookSaveButton.disabled = true;
+    });
+  </script>
+</body>
+</html>
