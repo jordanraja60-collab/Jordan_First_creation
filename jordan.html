@@ -75,18 +75,20 @@
     .score { margin-top: 6px; }
 
     /* ========== 7. CANDY MATCH ========= */
-    .candy-game { background: var(--white); border: 3px solid var(--red); border-radius: 12px; padding: 20px; }
+    .candy-game { position: relative; background: var(--white); border: 3px solid var(--red); border-radius: 12px; padding: 20px; }
     .candy-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
     .candy-stats { display: flex; flex-wrap: wrap; gap: 8px 20px; font-weight: bold; }
     .candy-board { display: grid; grid-template-columns: repeat(var(--board-size), minmax(0, 1fr)); gap: 5px; width: min(100%, 430px); margin: 0 auto; aspect-ratio: 1; touch-action: none; }
     .candy-board button { position: relative; display: grid; place-items: center; min-width: 0; aspect-ratio: 1; padding: 0; border: 2px solid transparent; border-radius: 8px; font-size: clamp(1.2rem, 5vw, 2rem); line-height: 1; }
     .candy-board button:hover { filter: brightness(0.94); background: var(--candy-color); }
     .candy-board button.selected { border-color: var(--ink); animation: candy-selected 550ms ease-in-out infinite alternate; }
-    .candy-board button.exploding { z-index: 2; animation: candy-pop 280ms ease-in forwards; pointer-events: none; }
-    .candy-board button.exploding::after { content: "✦"; position: absolute; top: 50%; left: 50%; color: #ffcc33; font-size: 1.4em; line-height: 1; text-shadow: 0 0 8px #fff, 0 0 14px #ff8a00; pointer-events: none; animation: candy-burst 280ms ease-out forwards; }
-    .candy-board button.striped { box-shadow: inset 0 0 0 3px #fff, inset 0 0 0 6px #d62828; }
+    .candy-board button.exploding { z-index: 2; animation: candy-pop 460ms cubic-bezier(.2,.8,.2,1) var(--pop-delay, 0ms) forwards; pointer-events: none; }
+    .candy-board button.exploding::after { content: "✦"; position: absolute; top: 50%; left: 50%; color: #ffcc33; font-size: 1.4em; line-height: 1; text-shadow: 0 0 8px #fff, 0 0 14px #ff8a00; pointer-events: none; animation: candy-burst 460ms ease-out var(--pop-delay, 0ms) forwards; }
+    .candy-board button.striped { box-shadow: inset 0 0 0 3px #fff, inset 0 0 0 6px #d62828, 0 0 12px #d6282866; animation: candy-power-glow 900ms ease-in-out infinite alternate; }
     .candy-board button.striped::before { content: "✦"; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-size: 1.35em; text-shadow: 0 0 4px #9d1b1b, 0 0 8px #9d1b1b; }
-    .candy-board button.color-bomb { background: radial-gradient(circle at 35% 30%, #fff 0 7%, #ffcc33 8% 18%, #d62828 19% 34%, #7046a8 35% 51%, #2f85bc 52% 68%, #292139 69%); box-shadow: inset 0 0 0 3px #fff8, 0 0 12px #9b5de5aa; }
+    .candy-board button.color-bomb { background: radial-gradient(circle at 35% 30%, #fff 0 7%, #ffcc33 8% 18%, #d62828 19% 34%, #7046a8 35% 51%, #2f85bc 52% 68%, #292139 69%); box-shadow: inset 0 0 0 3px #fff8, 0 0 12px #9b5de5aa; animation: candy-bomb-glow 1.3s ease-in-out infinite alternate; }
+    .candy-rainbow { position: absolute; z-index: 3; width: min(76vw, 330px); pointer-events: none; filter: drop-shadow(0 0 12px #ffcc33aa); transform-origin: center; }
+    .candy-rainbow svg { display: block; width: 100%; height: auto; overflow: visible; }
     .candy-help { margin-top: 10px; text-align: center; font-size: .95rem; }
     .candy-red { --candy-color: #ffd3cf; background: var(--candy-color); }
     .candy-orange { --candy-color: #ffe0bd; background: var(--candy-color); }
@@ -97,15 +99,21 @@
     .candy-message { min-height: 1.6em; margin-top: 12px; text-align: center; font-weight: bold; }
     @media (max-width: 420px) { .candy-game { padding: 10px; } }
     @keyframes candy-selected { to { box-shadow: 0 0 0 4px #d6282840; transform: scale(0.94); } }
+    @keyframes candy-power-glow { to { filter: brightness(1.2) drop-shadow(0 0 8px #ffbd2e); } }
+    @keyframes candy-bomb-glow { to { filter: brightness(1.25) drop-shadow(0 0 12px #9b5de5); transform: scale(1.06) rotate(8deg); } }
     @keyframes candy-pop {
       0% { opacity: 1; transform: scale(1) rotate(0); filter: brightness(1); }
-      45% { opacity: 1; transform: scale(1.3) rotate(12deg); filter: brightness(1.7); }
-      100% { opacity: 0; transform: scale(0.1) rotate(-28deg); filter: brightness(2); }
+      32% { opacity: 1; transform: scale(1.28) rotate(10deg); filter: brightness(1.8) drop-shadow(0 0 12px #ffcc33); }
+      68% { opacity: .8; transform: scale(.82) rotate(-9deg); }
+      100% { opacity: 0; transform: scale(.12) rotate(24deg); filter: brightness(2); }
     }
     @keyframes candy-burst {
       0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2) rotate(0); }
       35% { opacity: 1; transform: translate(-50%, -50%) scale(1.5) rotate(45deg); }
       100% { opacity: 0; transform: translate(-50%, -50%) scale(2.2) rotate(90deg); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .candy-board button.striped, .candy-board button.color-bomb { animation-duration: 1ms; }
     }
     @media (prefers-reduced-motion: reduce) {
       .candy-board button.selected { animation-duration: 1ms; }
@@ -582,9 +590,10 @@
     }
 
     function animateCandyMatches(matches) {
-      const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 1 : 280;
+      const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 1 : 460;
       return Promise.all([...matches].map(index => new Promise(resolve => {
         const tile = candyBoard.querySelector('[data-index="' + index + '"]');
+        const delay = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : (index % boardSize) * 24;
         let finished = false;
         const finish = event => {
           if (event && (event.target !== tile || event.animationName !== "candy-pop")) return;
@@ -594,10 +603,35 @@
           tile.removeEventListener("animationend", finish);
           resolve();
         };
-        const fallback = setTimeout(finish, duration + 80);
+        const fallback = setTimeout(finish, duration + delay + 100);
         tile.addEventListener("animationend", finish);
+        tile.style.setProperty("--pop-delay", delay + "ms");
         tile.classList.add("exploding");
       })));
+    }
+
+    async function showCandyRainbow() {
+      const rainbow = document.createElement("div");
+      rainbow.className = "candy-rainbow";
+      rainbow.setAttribute("aria-hidden", "true");
+      rainbow.innerHTML = '<svg viewBox="0 0 300 180" xmlns="http://www.w3.org/2000/svg"><path d="M24 164a126 126 0 0 1 252 0" fill="none" stroke="#9b5de5" stroke-width="84" stroke-linecap="round"/><path d="M24 164a126 126 0 0 1 252 0" fill="none" stroke="#e83e55" stroke-width="70" stroke-linecap="round"/><path d="M24 164a126 126 0 0 1 252 0" fill="none" stroke="#ff8a32" stroke-width="56" stroke-linecap="round"/><path d="M24 164a126 126 0 0 1 252 0" fill="none" stroke="#ffd43b" stroke-width="42" stroke-linecap="round"/><path d="M24 164a126 126 0 0 1 252 0" fill="none" stroke="#43b879" stroke-width="28" stroke-linecap="round"/><path d="M24 164a126 126 0 0 1 252 0" fill="none" stroke="#39a4db" stroke-width="14" stroke-linecap="round"/></svg>';
+      const boardRect = candyBoard.getBoundingClientRect();
+      const gameRect = candyBoard.closest(".candy-game").getBoundingClientRect();
+      rainbow.style.left = boardRect.left + boardRect.width / 2 - gameRect.left + "px";
+      rainbow.style.top = boardRect.top + boardRect.height / 2 - gameRect.top + "px";
+      candyBoard.closest(".candy-game").append(rainbow);
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const animation = rainbow.animate(
+        [
+          { opacity: 0, transform: "translate(-50%, -50%) scale(1.15) rotate(-8deg)" },
+          { opacity: 1, transform: "translate(-50%, -55%) scale(1) rotate(3deg)", offset: .18 },
+          { opacity: .8, transform: "translate(-50%, -50%) scale(.78) rotate(-2deg)", offset: .68 },
+          { opacity: 0, transform: "translate(-50%, -45%) scale(.12) rotate(8deg)" }
+        ],
+        { duration: reducedMotion ? 100 : 2400, easing: "cubic-bezier(.2,.7,.25,1)", fill: "forwards" }
+      );
+      await animation.finished;
+      rainbow.remove();
     }
 
     function findCandyMatches() {
@@ -696,7 +730,11 @@
       let { matches, powers } = findCandyMatches();
       while (matches.size > 0) {
         const activated = activateCandyPowers(matches);
-        await animateCandyMatches(matches);
+        const bombActivated = [...activated].some(index => candies[index].power === "bomb");
+        await Promise.all([
+          animateCandyMatches(matches),
+          bombActivated ? showCandyRainbow() : Promise.resolve()
+        ]);
         clearAndRefill(matches, powers, activated);
         candySwapTarget = null;
         candyBombTargetType = null;
