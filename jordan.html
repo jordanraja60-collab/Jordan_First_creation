@@ -267,7 +267,7 @@
         </select>
         <div class="question" id="question">? × ?</div>
         <div class="quiz-timer" role="timer" aria-label="Time remaining">
-          <span id="timerLabel">Time left:</span><span id="timerText">4.0 seconds</span>
+          <span>Time left:</span><span id="timerText">4.0 seconds</span>
           <div class="quiz-timer-track" id="timerTrack" role="progressbar" aria-label="Time remaining" aria-valuemin="0" aria-valuemax="4" aria-valuenow="4">
             <div class="quiz-timer-fill" id="timerFill"></div>
           </div>
@@ -356,7 +356,6 @@
     const modeBox = document.getElementById("mode");
     const stopTimerButton = document.getElementById("stopTimerBtn");
     const resumeTimerButton = document.getElementById("resumeTimerBtn");
-    const timerLabel = document.getElementById("timerLabel");
     const timerText = document.getElementById("timerText");
     const timerTrack = document.getElementById("timerTrack");
     const timerFill = document.getElementById("timerFill");
@@ -437,24 +436,17 @@
           ? mathTimeLimit
           : mathDeadline - performance.now();
       const secondsLeft = Math.max(0, timeLeft) / 1000;
-      const overtimeSeconds = Math.max(0, -timeLeft) / 1000;
-      timerLabel.textContent = overtimeSeconds > 0 ? "Overtime:" : "Time left:";
       timerText.textContent = mathTimerStopped
-        ? overtimeSeconds > 0
-          ? "Stopped at +" + overtimeSeconds.toFixed(1) + "s"
-          : "Stopped at " + secondsLeft.toFixed(1) + "s"
-        : overtimeSeconds > 0
-          ? "+" + overtimeSeconds.toFixed(1) + " seconds"
-          : secondsLeft.toFixed(1) + (secondsLeft === 1 ? " second" : " seconds");
+        ? "Stopped at " + secondsLeft.toFixed(1) + "s"
+        : secondsLeft.toFixed(1) + (secondsLeft === 1 ? " second" : " seconds");
       timerTrack.setAttribute("aria-valuenow", secondsLeft.toFixed(1));
       timerFill.style.width = (secondsLeft / 4 * 100) + "%";
       timerHint.textContent = mathTimerStopped
         ? "Timer stopped — take your time. This answer won't add to your speed streak."
         : mathDeadline === 0
           ? "Timer starts when you begin typing."
-          : overtimeSeconds > 0
-            ? "Four seconds are up — the timer keeps going until you stop it or answer."
-            : "Hurry! Submit within 4 seconds to build your speed streak.";
+          : "Hurry! Submit before the timer runs out.";
+      if (mathDeadline !== 0 && timeLeft <= 0) handleMathTimeout();
     }
 
     function startMathTimer() {
@@ -467,7 +459,7 @@
     function stopMathTimer() {
       if (mathTimerStopped) return;
       mathTimerWasRunning = mathDeadline !== 0;
-      if (mathTimerWasRunning) mathRemainingMs = mathDeadline - performance.now();
+      if (mathTimerWasRunning) mathRemainingMs = Math.max(0, mathDeadline - performance.now());
       clearInterval(mathTimerInterval);
       mathDeadline = 0;
       mathTimerStopped = true;
@@ -493,6 +485,15 @@
       streakBox.textContent = mathStreak;
       streakFlame.hidden = mathStreak < 10;
       streakFlame.style.setProperty("--flame-size", Math.min(1 + (mathStreak - 10) * 0.08, 3) + "em");
+    }
+
+    function handleMathTimeout() {
+      clearInterval(mathTimerInterval);
+      mathStreak = 0;
+      updateMathStreak();
+      playMathAnswerSound(false);
+      message.textContent = "Time's up! The answer was " + correctAnswer + ".";
+      newQuestion();
     }
 
     function playMathAnswerSound(correct) {
@@ -557,24 +558,19 @@
       if (mathDeadline === 0 && !mathTimerStopped) {
         startMathTimer();
       }
+      if (!mathTimerStopped && performance.now() >= mathDeadline) {
+        handleMathTimeout();
+        return;
+      }
       if (Number(answerBox.value) === correctAnswer) {
         score = score + 1;
         scoreBox.textContent = score;
         playMathAnswerSound(true);
-        const answeredWithinTime = !mathTimerStopped &&
-          mathDeadline !== 0 &&
-          performance.now() < mathDeadline;
-        if (answeredWithinTime) {
-          mathStreak++;
-        } else {
-          mathStreak = 0;
-        }
+        if (!mathTimerStopped) mathStreak++;
         updateMathStreak();
         message.textContent = mathTimerStopped
           ? "Correct! Great job! (Timer was stopped, so no speed streak.)"
-          : answeredWithinTime
-            ? "Correct! Great job!"
-            : "Correct! Great job! (Over 4 seconds, so no speed streak.)";
+          : "Correct! Great job!";
       } else {
         playMathAnswerSound(false);
         mathStreak = 0;
