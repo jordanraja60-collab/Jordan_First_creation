@@ -71,6 +71,13 @@
     .quiz input { font-size: 1.3rem; width: 120px; padding: 8px; text-align: center; border: 2px solid var(--ink); border-radius: 8px; }
     .quiz select { font-size: 1.1rem; padding: 6px; border: 2px solid var(--ink); border-radius: 8px; margin-left: 6px; }
     .quiz label { font-weight: bold; }
+    .quiz-timer { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 5px 10px; max-width: 360px; margin: 14px auto 10px; font-weight: bold; }
+    .quiz-timer-track { grid-column: 1 / -1; height: 12px; overflow: hidden; border-radius: 999px; background: #f0dedd; }
+    .quiz-timer-fill { width: 100%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #36a269, #ffbd2e 65%, #d62828); transform-origin: left; transition: width 80ms linear; }
+    .quiz-streak { display: flex; min-height: 2em; align-items: center; justify-content: center; gap: 5px; margin-top: 8px; font-weight: bold; }
+    .quiz-flame { display: inline-block; font-size: var(--flame-size, 1em); line-height: 1; filter: drop-shadow(0 0 5px #ff8a00aa); animation: streak-flicker 420ms ease-in-out infinite alternate; }
+    .quiz-flame[hidden] { display: none; }
+    @keyframes streak-flicker { from { transform: rotate(-7deg) scale(.96); } to { transform: rotate(7deg) scale(1.08); } }
     .message { min-height: 1.8em; margin-top: 12px; font-weight: bold; }
     .score { margin-top: 6px; }
 
@@ -251,10 +258,17 @@
           <option value="divide">Division (÷)</option>
         </select>
         <div class="question" id="question">? × ?</div>
+        <div class="quiz-timer" role="timer" aria-label="Time remaining">
+          <span>Time left:</span><span id="timerText">4.0 seconds</span>
+          <div class="quiz-timer-track" id="timerTrack" role="progressbar" aria-label="Time remaining" aria-valuemin="0" aria-valuemax="4" aria-valuenow="4">
+            <div class="quiz-timer-fill" id="timerFill"></div>
+          </div>
+        </div>
         <input type="number" id="answer" aria-label="Your answer">
         <button id="checkBtn">Check</button>
         <p class="message" id="message"></p>
         <p class="score">Score: <span id="score">0</span></p>
+        <p class="quiz-streak" aria-live="polite">Streak: <span id="streak">0</span><span class="quiz-flame" id="streakFlame" aria-label="Fire streak" hidden>🔥</span></p>
       </div>
     </div>
   </section>
@@ -327,6 +341,15 @@
     const message = document.getElementById("message");
     const scoreBox = document.getElementById("score");
     const modeBox = document.getElementById("mode");
+    const timerText = document.getElementById("timerText");
+    const timerTrack = document.getElementById("timerTrack");
+    const timerFill = document.getElementById("timerFill");
+    const streakBox = document.getElementById("streak");
+    const streakFlame = document.getElementById("streakFlame");
+    const mathTimeLimit = 4000;
+    let mathStreak = 0;
+    let mathDeadline = 0;
+    let mathTimerInterval;
 
     // A helper that gives a random whole number from min to max
     function randomNumber(min, max) {
@@ -335,6 +358,7 @@
 
     // Make a new question
     function newQuestion() {
+      clearInterval(mathTimerInterval);
       // Which kind of question? If "Mixed", pick one at random
       let type = modeBox.value;
       if (type === "mixed") {
@@ -372,10 +396,62 @@
 
       answerBox.value = "";
       answerBox.focus();
+      mathDeadline = performance.now() + mathTimeLimit;
+      updateMathTimer();
+      mathTimerInterval = setInterval(updateMathTimer, 50);
+    }
+
+    function updateMathTimer() {
+      const timeLeft = Math.max(0, mathDeadline - performance.now());
+      const secondsLeft = timeLeft / 1000;
+      timerText.textContent = secondsLeft.toFixed(1) + (secondsLeft === 1 ? " second" : " seconds");
+      timerTrack.setAttribute("aria-valuenow", secondsLeft.toFixed(1));
+      timerFill.style.width = (secondsLeft / 4 * 100) + "%";
+      if (timeLeft === 0) handleMathTimeout();
+    }
+
+    function updateMathStreak() {
+      streakBox.textContent = mathStreak;
+      streakFlame.hidden = mathStreak < 10;
+      streakFlame.style.setProperty("--flame-size", Math.min(1 + (mathStreak - 10) * 0.08, 3) + "em");
+    }
+
+    function playMathAnswerSound(correct) {
+      if (!diceAudio) return;
+      if (diceAudio.state === "suspended") diceAudio.resume();
+      const startAt = diceAudio.currentTime + 0.02;
+      const notes = correct ? [659.25, 880] : [220, 164.81];
+      notes.forEach((frequency, index) => {
+        const noteStart = startAt + index * 0.12;
+        const oscillator = diceAudio.createOscillator();
+        const volume = diceAudio.createGain();
+        oscillator.type = correct ? "sine" : "triangle";
+        oscillator.frequency.setValueAtTime(frequency, noteStart);
+        volume.gain.setValueAtTime(0.0001, noteStart);
+        volume.gain.exponentialRampToValueAtTime(correct ? 0.1 : 0.08, noteStart + 0.015);
+        volume.gain.exponentialRampToValueAtTime(0.0001, noteStart + 0.2);
+        oscillator.connect(volume);
+        volume.connect(diceAudio.destination);
+        oscillator.start(noteStart);
+        oscillator.stop(noteStart + 0.21);
+      });
+    }
+
+    function handleMathTimeout() {
+      clearInterval(mathTimerInterval);
+      mathStreak = 0;
+      updateMathStreak();
+      playMathAnswerSound(false);
+      message.textContent = "Time's up! The answer was " + correctAnswer + ".";
+      newQuestion();
     }
 
     // Check the answer when the button is clicked
     function checkAnswer() {
+      if (performance.now() >= mathDeadline) {
+        handleMathTimeout();
+        return;
+      }
       if (answerBox.value === "") {
         message.textContent = "Type an answer first!";
         return;
@@ -383,8 +459,14 @@
       if (Number(answerBox.value) === correctAnswer) {
         score = score + 1;
         scoreBox.textContent = score;
+        playMathAnswerSound(true);
+        mathStreak++;
+        updateMathStreak();
         message.textContent = "Correct! Great job!";
       } else {
+        playMathAnswerSound(false);
+        mathStreak = 0;
+        updateMathStreak();
         message.textContent = "Not quite. The answer was " + correctAnswer + ".";
       }
       newQuestion();
