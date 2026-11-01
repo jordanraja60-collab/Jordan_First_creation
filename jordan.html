@@ -81,6 +81,7 @@
     .quiz-controls .stop-timer-button { background: #60484a; font-size: .95rem; }
     .quiz-controls .stop-timer-button:hover { background: #3f2d2e; }
     .quiz-controls .stop-timer-button:disabled { cursor: default; opacity: .7; }
+    .quiz-controls button[hidden] { display: none; }
     .quiz-streak { display: flex; min-height: 2em; align-items: center; justify-content: center; gap: 5px; margin-top: 8px; font-weight: bold; }
     .quiz-flame { display: inline-block; font-size: var(--flame-size, 1em); line-height: 1; filter: drop-shadow(0 0 5px #ff8a00aa); animation: streak-flicker 420ms ease-in-out infinite alternate; }
     .quiz-flame[hidden] { display: none; }
@@ -276,6 +277,7 @@
           <input type="number" id="answer" aria-label="Your answer">
           <button id="checkBtn">Check</button>
           <button type="button" class="stop-timer-button" id="stopTimerBtn">Stop timer</button>
+          <button type="button" class="stop-timer-button" id="resumeTimerBtn" hidden>Turn timer back on</button>
         </div>
         <p class="message" id="message"></p>
         <p class="score">Score: <span id="score">0</span></p>
@@ -353,6 +355,7 @@
     const scoreBox = document.getElementById("score");
     const modeBox = document.getElementById("mode");
     const stopTimerButton = document.getElementById("stopTimerBtn");
+    const resumeTimerButton = document.getElementById("resumeTimerBtn");
     const timerText = document.getElementById("timerText");
     const timerTrack = document.getElementById("timerTrack");
     const timerFill = document.getElementById("timerFill");
@@ -364,6 +367,7 @@
     let mathStreak = 0;
     let mathDeadline = 0;
     let mathTimerStopped = false;
+    let mathTimerWasRunning = false;
     let mathRemainingMs = mathTimeLimit;
     let mathTimerInterval;
     let mathChallengeVisible = true;
@@ -416,9 +420,12 @@
       answerBox.focus();
       mathDeadline = 0;
       mathTimerStopped = false;
+      mathTimerWasRunning = false;
       mathRemainingMs = mathTimeLimit;
       stopTimerButton.disabled = false;
+      stopTimerButton.hidden = false;
       stopTimerButton.textContent = "Stop timer";
+      resumeTimerButton.hidden = true;
       updateMathTimer();
     }
 
@@ -451,12 +458,26 @@
 
     function stopMathTimer() {
       if (mathTimerStopped) return;
-      if (mathDeadline !== 0) mathRemainingMs = Math.max(0, mathDeadline - performance.now());
+      mathTimerWasRunning = mathDeadline !== 0;
+      if (mathTimerWasRunning) mathRemainingMs = Math.max(0, mathDeadline - performance.now());
       clearInterval(mathTimerInterval);
       mathDeadline = 0;
       mathTimerStopped = true;
-      stopTimerButton.disabled = true;
-      stopTimerButton.textContent = "Timer stopped";
+      stopTimerButton.hidden = true;
+      resumeTimerButton.hidden = false;
+      updateMathTimer();
+    }
+
+    function resumeMathTimer() {
+      if (!mathTimerStopped) return;
+      mathTimerStopped = false;
+      stopTimerButton.hidden = false;
+      resumeTimerButton.hidden = true;
+      if (mathTimerWasRunning) {
+        mathDeadline = performance.now() + mathRemainingMs;
+        mathTimerInterval = setInterval(updateMathTimer, 50);
+      }
+      mathTimerWasRunning = false;
       updateMathTimer();
     }
 
@@ -564,6 +585,7 @@
 
     document.getElementById("checkBtn").addEventListener("click", checkAnswer);
     stopTimerButton.addEventListener("click", stopMathTimer);
+    resumeTimerButton.addEventListener("click", resumeMathTimer);
     answerBox.addEventListener("input", function () {
       if (answerBox.value !== "") startMathTimer();
     });
