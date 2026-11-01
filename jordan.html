@@ -349,10 +349,13 @@
     const timerHint = document.getElementById("timerHint");
     const streakBox = document.getElementById("streak");
     const streakFlame = document.getElementById("streakFlame");
+    const mathChallengeSection = document.getElementById("challenge");
     const mathTimeLimit = 4000;
     let mathStreak = 0;
     let mathDeadline = 0;
     let mathTimerInterval;
+    let mathChallengeVisible = true;
+    const mathSoundNodes = new Set();
 
     // A helper that gives a random whole number from min to max
     function randomNumber(min, max) {
@@ -427,7 +430,7 @@
     }
 
     function playMathAnswerSound(correct) {
-      if (!diceAudio) return;
+      if (!diceAudio || !mathChallengeVisible) return;
       if (diceAudio.state === "suspended") diceAudio.resume();
       const startAt = diceAudio.currentTime + 0.02;
       const notes = correct ? [659.25, 880] : [220, 164.81];
@@ -442,9 +445,40 @@
         volume.gain.exponentialRampToValueAtTime(0.0001, noteStart + 0.2);
         oscillator.connect(volume);
         volume.connect(diceAudio.destination);
+        const soundNode = { oscillator, volume };
+        mathSoundNodes.add(soundNode);
+        oscillator.addEventListener("ended", () => {
+          mathSoundNodes.delete(soundNode);
+          oscillator.disconnect();
+          volume.disconnect();
+        }, { once: true });
         oscillator.start(noteStart);
         oscillator.stop(noteStart + 0.21);
       });
+    }
+
+    function stopMathAnswerSound() {
+      mathSoundNodes.forEach(({ oscillator, volume }) => {
+        oscillator.stop();
+        oscillator.disconnect();
+        volume.disconnect();
+      });
+      mathSoundNodes.clear();
+    }
+
+    if ("IntersectionObserver" in window) {
+      const mathSectionObserver = new IntersectionObserver(entries => {
+        const sectionIsVisible = entries.some(entry => entry.isIntersecting);
+        mathChallengeVisible = sectionIsVisible;
+        if (!sectionIsVisible) stopMathAnswerSound();
+      });
+      mathSectionObserver.observe(mathChallengeSection);
+    } else {
+      window.addEventListener("scroll", () => {
+        const bounds = mathChallengeSection.getBoundingClientRect();
+        mathChallengeVisible = bounds.bottom > 0 && bounds.top < window.innerHeight;
+        if (!mathChallengeVisible) stopMathAnswerSound();
+      }, { passive: true });
     }
 
     function handleMathTimeout() {
