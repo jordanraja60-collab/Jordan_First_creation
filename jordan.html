@@ -74,6 +74,7 @@
     .quiz-timer { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 5px 10px; max-width: 360px; margin: 14px auto 10px; font-weight: bold; }
     .quiz-timer-track { grid-column: 1 / -1; height: 12px; overflow: hidden; border-radius: 999px; background: #f0dedd; }
     .quiz-timer-fill { width: 100%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #36a269, #ffbd2e 65%, #d62828); transform-origin: left; transition: width 80ms linear; }
+    .quiz-timer-hint { grid-column: 1 / -1; color: #60484a; font-size: .9rem; font-weight: normal; }
     .quiz-streak { display: flex; min-height: 2em; align-items: center; justify-content: center; gap: 5px; margin-top: 8px; font-weight: bold; }
     .quiz-flame { display: inline-block; font-size: var(--flame-size, 1em); line-height: 1; filter: drop-shadow(0 0 5px #ff8a00aa); animation: streak-flicker 420ms ease-in-out infinite alternate; }
     .quiz-flame[hidden] { display: none; }
@@ -263,6 +264,7 @@
           <div class="quiz-timer-track" id="timerTrack" role="progressbar" aria-label="Time remaining" aria-valuemin="0" aria-valuemax="4" aria-valuenow="4">
             <div class="quiz-timer-fill" id="timerFill"></div>
           </div>
+          <span class="quiz-timer-hint" id="timerHint">Timer starts when you begin typing.</span>
         </div>
         <input type="number" id="answer" aria-label="Your answer">
         <button id="checkBtn">Check</button>
@@ -344,6 +346,7 @@
     const timerText = document.getElementById("timerText");
     const timerTrack = document.getElementById("timerTrack");
     const timerFill = document.getElementById("timerFill");
+    const timerHint = document.getElementById("timerHint");
     const streakBox = document.getElementById("streak");
     const streakFlame = document.getElementById("streakFlame");
     const mathTimeLimit = 4000;
@@ -396,18 +399,25 @@
 
       answerBox.value = "";
       answerBox.focus();
-      mathDeadline = performance.now() + mathTimeLimit;
+      mathDeadline = 0;
       updateMathTimer();
-      mathTimerInterval = setInterval(updateMathTimer, 50);
     }
 
     function updateMathTimer() {
-      const timeLeft = Math.max(0, mathDeadline - performance.now());
+      const timeLeft = mathDeadline === 0 ? mathTimeLimit : Math.max(0, mathDeadline - performance.now());
       const secondsLeft = timeLeft / 1000;
       timerText.textContent = secondsLeft.toFixed(1) + (secondsLeft === 1 ? " second" : " seconds");
       timerTrack.setAttribute("aria-valuenow", secondsLeft.toFixed(1));
       timerFill.style.width = (secondsLeft / 4 * 100) + "%";
-      if (timeLeft === 0) handleMathTimeout();
+      timerHint.textContent = mathDeadline === 0 ? "Timer starts when you begin typing." : "Hurry! Submit before the timer runs out.";
+      if (mathDeadline !== 0 && timeLeft === 0) handleMathTimeout();
+    }
+
+    function startMathTimer() {
+      if (mathDeadline !== 0) return;
+      mathDeadline = performance.now() + mathTimeLimit;
+      updateMathTimer();
+      mathTimerInterval = setInterval(updateMathTimer, 50);
     }
 
     function updateMathStreak() {
@@ -448,12 +458,16 @@
 
     // Check the answer when the button is clicked
     function checkAnswer() {
-      if (performance.now() >= mathDeadline) {
-        handleMathTimeout();
+      if (answerBox.value === "") {
+        message.textContent = "Type an answer to start the timer!";
+        answerBox.focus();
         return;
       }
-      if (answerBox.value === "") {
-        message.textContent = "Type an answer first!";
+      if (mathDeadline === 0) {
+        startMathTimer();
+      }
+      if (performance.now() >= mathDeadline) {
+        handleMathTimeout();
         return;
       }
       if (Number(answerBox.value) === correctAnswer) {
@@ -476,6 +490,9 @@
     modeBox.addEventListener("change", newQuestion);
 
     document.getElementById("checkBtn").addEventListener("click", checkAnswer);
+    answerBox.addEventListener("input", function () {
+      if (answerBox.value !== "") startMathTimer();
+    });
 
     // Let the Enter key work too
     answerBox.addEventListener("keydown", function (event) {
